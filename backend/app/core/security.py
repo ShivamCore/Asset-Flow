@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 from datetime import datetime, timedelta, timezone
 from typing import Any, Union, Optional
 from jose import JWTError, jwt
@@ -59,38 +58,31 @@ def decode_access_token(token: str) -> Optional[dict]:
     except JWTError:
         return None
 
-#azdf
-=======
-"""Authentication seam for the AssetFlow foundation.
 
-Every module consumes :class:`Principal` and :func:`get_current_user` from here.
-The production system decodes a bearer JWT; for this deployment the identity is
-carried on lightweight forwarded headers minted by the frontend at sign-in:
+# ===========================================================================
+# Principal / header-based auth seam for the self-contained workflow modules.
+#
+# The Booking / Maintenance / Asset-Audit / Notifications / Activity-Log /
+# Dashboard / Reports modules consume ``Principal`` and ``get_current_user``
+# from here (``from app.core.security import Principal, get_current_user``).
+# They identify the caller from the frontend's forwarded identity headers:
+#
+#     X-User-Id     -- string principal id (string-FK contract, e.g. EMP-1001)
+#     X-User-Role   -- one of app.core.enums.Role
+#     Authorization -- "Bearer demo.<id>.<role>" (fallback source)
+#
+# This is intentionally separate from the JWT/User seam in
+# ``app.core.dependencies`` used by the /api/v1 organization routers — the two
+# auth systems coexist; nothing above is affected.
+# ===========================================================================
+from fastapi import HTTPException, Request, status  # noqa: E402
+from pydantic import BaseModel  # noqa: E402
 
-    X-User-Id     -- string principal id (string-FK contract, e.g. ``EMP-1001``)
-    X-User-Role   -- one of :class:`app.core.enums.Role`
-    Authorization -- ``Bearer demo.<id>.<role>`` (fallback source for the above)
-
-Identity is resolved from those headers; nothing is invented. A request that
-carries no identity is rejected with ``401`` rather than being silently granted a
-principal — matching how the real JWT seam behaves.
-"""
-from __future__ import annotations
-
-from typing import Optional
-
-from fastapi import HTTPException, Request, status
-from pydantic import BaseModel
-
-from app.core.enums import Role
+from app.core.enums import Role  # noqa: E402
 
 
 class Principal(BaseModel):
-    """The authenticated caller, derived from the request's identity headers.
-
-    User identifiers are strings to honour the string-FK integration contract
-    shared across the AssetFlow modules.
-    """
+    """The authenticated caller, derived from the request's identity headers."""
 
     id: str
     role: Role
@@ -115,28 +107,25 @@ def _role_from_str(raw: Optional[str]) -> Optional[Role]:
         return None
 
 
-def _from_bearer(token: str) -> tuple[Optional[str], Optional[Role]]:
+def _principal_from_bearer(token: str):
     """Parse the demo bearer token ``demo.<id>.<role>`` into (id, role)."""
     if not token.lower().startswith("bearer "):
         return None, None
-    value = token[7:].strip()
-    parts = value.split(".")
+    parts = token[7:].strip().split(".")
     if len(parts) >= 3 and parts[0] == "demo":
-        # role is the final segment; id is everything between (ids contain no dots)
         return parts[1], _role_from_str(parts[-1])
     return None, None
 
 
-def get_current_user(request: Request) -> Principal:
-    """Resolve the authenticated principal from the request's identity headers."""
+def get_current_user(request: Request) -> "Principal":
+    """Resolve the workflow-module principal from the request's identity headers."""
     user_id = request.headers.get("X-User-Id")
     role = _role_from_str(request.headers.get("X-User-Role"))
 
     if not user_id or role is None:
-        # Fall back to the bearer token so a client that only sets Authorization
-        # still authenticates.
-        auth = request.headers.get("Authorization", "")
-        bearer_id, bearer_role = _from_bearer(auth)
+        bearer_id, bearer_role = _principal_from_bearer(
+            request.headers.get("Authorization", "")
+        )
         user_id = user_id or bearer_id
         role = role or bearer_role
 
@@ -153,4 +142,3 @@ def get_current_user(request: Request) -> Principal:
         email=request.headers.get("X-User-Email"),
         name=request.headers.get("X-User-Name"),
     )
->>>>>>> 7cb671b ( final updates)

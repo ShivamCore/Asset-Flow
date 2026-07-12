@@ -92,21 +92,12 @@ app.include_router(test.router)
 
 app.add_middleware(
     CORSMiddleware,
-<<<<<<< HEAD
-    allow_origins=["*"],  # Allow all for hackathon dev simplicity, or keep specific origins
-=======
-    allow_origins=[
-        "http://localhost:5173",
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-    ],
->>>>>>> 7cb671b ( final updates)
+    allow_origins=["*"],  # Allow all for hackathon dev simplicity
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-<<<<<<< HEAD
 # Register routers
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(departments.router, prefix="/api/v1")
@@ -115,7 +106,7 @@ app.include_router(employees.router, prefix="/api/v1")
 app.include_router(assets.router, prefix="/api/v1")
 app.include_router(allocations.router, prefix="/api/v1")
 app.include_router(transfers.router, prefix="/api/v1")
-=======
+
 # --- Mount every module (order is irrelevant; prefixes never collide) ---------
 register_booking(app)
 register_maintenance(app)
@@ -124,7 +115,6 @@ register_notifications(app)
 register_audit(app)
 register_dashboard(app)
 register_reports(app)
->>>>>>> 7cb671b ( final updates)
 
 
 @app.get("/")
