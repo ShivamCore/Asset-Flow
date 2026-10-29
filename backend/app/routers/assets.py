@@ -1,3 +1,4 @@
+import re
 from datetime import datetime, timezone
 from typing import List, Optional
 
@@ -18,13 +19,20 @@ manager_or_above = RoleChecker(["Admin", "Asset Manager"])
 
 
 def _generate_asset_tag(db: Session) -> str:
-    """Auto-generate a unique asset tag in format AST-XXXX."""
-    last = db.query(Asset).order_by(Asset.id.desc()).first()
-    next_id = (last.id + 1) if last else 1
-    return f"AST-{next_id:04d}"
+    """Auto-generate a unique asset tag in format AST-XXXX.
+
+    Ids are strings on the shared contract, so the next number comes from the
+    highest numeric suffix already in use rather than from an autoincrement.
+    """
+    highest = 0
+    for (tag,) in db.query(Asset.asset_tag).all():
+        match = re.fullmatch(r"AST-(\d+)", tag or "")
+        if match:
+            highest = max(highest, int(match.group(1)))
+    return f"AST-{highest + 1:04d}"
 
 
-def _log(db: Session, asset_id: int, user_id: int, action: str, detail: str = None):
+def _log(db: Session, asset_id: str, user_id: int, action: str, detail: str = None):
     entry = AssetHistory(
         asset_id=asset_id,
         performed_by_id=user_id,
@@ -73,7 +81,7 @@ def list_assets(
 # ──────────────────────────────────────────────────────────────────────────────
 @router.get("/{asset_id}", response_model=AssetResponse)
 def get_asset(
-    asset_id: int,
+    asset_id: str,
     db: Session = Depends(get_db),
     _: User = Depends(get_current_user),
 ):
@@ -112,6 +120,7 @@ def register_asset(
         )
 
     asset = Asset(
+        id=tag,
         name=payload.name,
         asset_tag=tag,
         description=payload.description,
@@ -139,7 +148,7 @@ def register_asset(
 # ──────────────────────────────────────────────────────────────────────────────
 @router.put("/{asset_id}", response_model=AssetResponse)
 def update_asset(
-    asset_id: int,
+    asset_id: str,
     payload: AssetUpdate,
     db: Session = Depends(get_db),
     current_user: User = Depends(manager_or_above),
@@ -170,7 +179,7 @@ def update_asset(
 # ──────────────────────────────────────────────────────────────────────────────
 @router.get("/{asset_id}/history", response_model=List[AssetHistoryResponse])
 def get_asset_history(
-    asset_id: int,
+    asset_id: str,
     db: Session = Depends(get_db),
     _: User = Depends(get_current_user),
 ):

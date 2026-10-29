@@ -4,7 +4,7 @@ from datetime import datetime
 
 
 class AllocationCreate(BaseModel):
-    asset_id: int
+    asset_id: str
     employee_id: Optional[int] = None
     department_id: Optional[int] = None
     expected_return_date: Optional[datetime] = None
@@ -27,7 +27,7 @@ class AllocationResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    asset_id: int
+    asset_id: str
     employee_id: Optional[int] = None
     department_id: Optional[int] = None
     allocated_by_id: int

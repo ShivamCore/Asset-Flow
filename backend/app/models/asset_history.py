@@ -7,7 +7,7 @@ class AssetHistory(Base):
     __tablename__ = "asset_history"
 
     id = Column(Integer, primary_key=True, index=True)
-    asset_id = Column(Integer, ForeignKey("assets.id"), nullable=False, index=True)
+    asset_id = Column(String(50), ForeignKey("assets.id"), nullable=False, index=True)
     performed_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)
 
     # Actions: registered | allocated | returned | transferred | status_changed | updated

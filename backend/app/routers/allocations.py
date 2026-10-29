@@ -18,7 +18,7 @@ router = APIRouter(prefix="/allocations", tags=["Allocations"])
 manager_or_above = RoleChecker(["Admin", "Asset Manager"])
 
 
-def _log(db: Session, asset_id: int, user_id: int, action: str, detail: str = None):
+def _log(db: Session, asset_id: str, user_id: int, action: str, detail: str = None):
     entry = AssetHistory(
         asset_id=asset_id,
         performed_by_id=user_id,
@@ -102,7 +102,7 @@ def checkout_asset(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Asset not found")
 
     # Conflict check: asset must be Available
-    if asset.status != "Available":
+    if asset.status != "available":
         active = (
             db.query(Allocation)
             .filter(Allocation.asset_id == asset.id, Allocation.status == "active")
@@ -139,7 +139,7 @@ def checkout_asset(
     )
     db.add(alloc)
 
-    asset.status = "Allocated"
+    asset.status = "allocated"
     _log(db, asset.id, current_user.id, "allocated",
          f"Checked out to {'employee ' + str(payload.employee_id) if payload.employee_id else 'department ' + str(payload.department_id)}")
     db.commit()
@@ -172,7 +172,7 @@ def return_asset(
     alloc.status = "returned"
 
     asset = alloc.asset
-    asset.status = "Available"
+    asset.status = "available"
 
     _log(db, asset.id, current_user.id, "returned",
          f"Returned from {'employee ' + str(alloc.employee_id) if alloc.employee_id else 'department ' + str(alloc.department_id)}. Condition: {payload.condition_in or 'Not noted'}")

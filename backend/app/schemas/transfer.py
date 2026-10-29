@@ -4,7 +4,7 @@ from datetime import datetime
 
 
 class TransferCreate(BaseModel):
-    asset_id: int
+    asset_id: str
     to_employee_id: int
     requester_notes: Optional[str] = None
 
@@ -18,7 +18,7 @@ class TransferResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    asset_id: int
+    asset_id: str
     from_employee_id: int
     to_employee_id: int
     requested_by_id: int

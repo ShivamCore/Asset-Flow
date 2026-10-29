@@ -9,7 +9,8 @@ local-store seed exactly (``AST-0001`` … ``AST-0016``, matching names / status
 / departments).
 
 Only the documented contract columns are created here — ``id``, ``name``,
-``status``, ``department_id`` — the same columns the gateways read.
+``status``, ``department_id`` — the same columns the gateways read. ``asset_tag``
+carries the same value as ``id``: they are one identifier on the unified table.
 """
 from __future__ import annotations
 
@@ -48,6 +49,7 @@ def ensure_assets_table(db: Session) -> None:
         text(
             "CREATE TABLE IF NOT EXISTS assets ("
             "id VARCHAR PRIMARY KEY, "
+            "asset_tag VARCHAR, "
             "name VARCHAR NOT NULL, "
             "status VARCHAR NOT NULL, "
             "department_id VARCHAR"
@@ -65,8 +67,8 @@ def seed_assets(db: Session) -> int:
     for i, (name, status, dept) in enumerate(_ASSET_SEED, start=1):
         db.execute(
             text(
-                "INSERT INTO assets (id, name, status, department_id) "
-                "VALUES (:id, :name, :status, :dept)"
+                "INSERT INTO assets (id, asset_tag, name, status, department_id) "
+                "VALUES (:id, :id, :name, :status, :dept)"
             ),
             {
                 "id": f"AST-{i:04d}",

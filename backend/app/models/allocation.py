@@ -7,7 +7,7 @@ class Allocation(Base):
     __tablename__ = "allocations"
 
     id = Column(Integer, primary_key=True, index=True)
-    asset_id = Column(Integer, ForeignKey("assets.id"), nullable=False, index=True)
+    asset_id = Column(String(50), ForeignKey("assets.id"), nullable=False, index=True)
 
     # Recipient: either employee OR department (mutually exclusive)
     employee_id = Column(Integer, ForeignKey("employees.id"), nullable=True)

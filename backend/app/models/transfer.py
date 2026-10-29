@@ -7,7 +7,7 @@ class Transfer(Base):
     __tablename__ = "transfers"
 
     id = Column(Integer, primary_key=True, index=True)
-    asset_id = Column(Integer, ForeignKey("assets.id"), nullable=False, index=True)
+    asset_id = Column(String(50), ForeignKey("assets.id"), nullable=False, index=True)
 
     # From/To employees
     from_employee_id = Column(Integer, ForeignKey("employees.id"), nullable=False)

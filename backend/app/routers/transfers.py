@@ -20,7 +20,7 @@ manager_or_above = RoleChecker(["Admin", "Asset Manager"])
 dept_head_or_above = RoleChecker(["Admin", "Asset Manager", "Department Head"])
 
 
-def _log(db: Session, asset_id: int, user_id: int, action: str, detail: str = None):
+def _log(db: Session, asset_id: str, user_id: int, action: str, detail: str = None):
     entry = AssetHistory(
         asset_id=asset_id,
         performed_by_id=user_id,
@@ -37,7 +37,7 @@ def _log(db: Session, asset_id: int, user_id: int, action: str, detail: str = No
 @router.get("/", response_model=List[TransferResponse])
 def list_transfers(
     status_filter: Optional[str] = Query(None, alias="status", description="Filter: pending | approved | rejected"),
-    asset_id: Optional[int] = Query(None),
+    asset_id: Optional[str] = Query(None),
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
     db: Session = Depends(get_db),
@@ -185,7 +185,7 @@ def action_transfer(
             status="active",
         )
         db.add(new_alloc)
-        asset.status = "Allocated"
+        asset.status = "allocated"
 
         _log(db, asset.id, current_user.id, "transfer_approved",
              f"Transfer approved. Asset reallocated from employee {transfer.from_employee_id} → {transfer.to_employee_id}")

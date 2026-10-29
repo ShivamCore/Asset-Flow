@@ -4,7 +4,7 @@ An asset and resource management system for organizations: departments, employee
 
 AssetFlow is a **team hackathon project**. Its 27 commits were all made on 2026-07-12 by three committers, with a fourth contributor credited as a co-author in one commit. The backend is a set of self-contained FastAPI modules over one shared database, and the frontend is a Next.js App Router application.
 
-> **Status: hackathon prototype.** The workflow modules and their 191 backend tests are solid. The integrated application, however, **does not start on a fresh database at the current `main`**, because two modules define the same `assets` table differently ([Known issues](#known-issues)). Authentication is a demo seam, not real security.
+> **Status: hackathon prototype.** The workflow modules and their 191 backend tests are solid, and the integrated application **now starts on a fresh database and serves the seeded estate end to end** — the two conflicting `assets` schemas have been reconciled into one ([Shared `assets` contract](#shared-assets-contract)). Authentication is still a demo seam, not real security.
 
 ## Who built what
 
@@ -69,7 +69,7 @@ cd backend
 uvicorn app.main:app --reload --port 8000     # interactive docs at /docs
 ```
 
-On the current `main`, startup fails on a fresh database with `table assets has no column named department_id` (see [Known issues](#known-issues)).
+Starting against an empty database creates every table and seeds the sixteen demo assets (`AST-0001`…`AST-0016`), the same ids the UI shows.
 
 ### Frontend
 
@@ -97,15 +97,35 @@ The dashboard and activity log are restricted to the Asset Manager and Administr
 | Check | Result | How it was established |
 |---|---|---|
 | `python -m pytest tests -q` (booking, maintenance, asset audit, notifications, activity log, dashboard, reports, cross-module integration) | 191 passed | Run locally on 2026-10-28, Python 3.12, clean virtualenv |
-| Application startup on an empty SQLite database | **Fails** | Reproduced on 2026-10-28 by starting the app's lifespan with FastAPI's `TestClient` |
+| Application startup on an empty SQLite database | **Passes** — 16 assets seeded, `/docs` and `/openapi.json` return 200 | Run on 2026-10-29 by starting the app's lifespan with FastAPI's `TestClient` against a deleted database |
+| End-to-end booking against a seeded asset | Booking created (201); an overlapping window is refused (409); an unknown asset id is refused (404); `/api/dashboard/overview` and `/kpis` return 200 | Same run, through the mounted application rather than a module fixture |
 | Frontend `typecheck` and `build` | Not run | — |
 | `/api/v1` routers (auth, departments, assets, …) | No automated tests | — |
 
 There is no CI configuration in this repository.
 
+## Shared `assets` contract
+
+Two parts of the backend used the table name `assets` with different shapes: the
+`/api/v1` ORM model keyed it on an autoincrementing integer, while the workflow
+modules read it through their `AssetGateway` against a string-keyed contract
+(`id`, `name`, `status`, `department_id`) — the same string ids the frontend
+store uses. `create_all` built the integer version, the seed then wrote string
+ids and a `department_id` column that version did not have, and startup died.
+
+They now agree on one schema, owned by [`app/models/asset.py`](backend/app/models/asset.py):
+
+- **`id` is a string** (`AST-0001`), matching the gateway contract and the UI's ids. `asset_tag` carries the same value, and the generator for new assets continues from the highest number already in use rather than from a row count.
+- **`department_id` is part of the model**, so `create_all` produces the column the gateways read.
+- **`status` is lower-case snake_case** (`available`, `allocated`, `under_maintenance`, …) across both halves, so a status written through `/api/v1` is one the modules recognise.
+- **`is_bookable`, `is_active` and `status` carry `server_default`s.** The table is shared with modules that write it through SQLAlchemy Core, so its invariants belong in the schema rather than only in the ORM layer.
+- **`category_id` is nullable**, because an asset on the shared contract exists before the `/api/v1` category taxonomy does.
+
+Foreign keys in `allocations`, `transfers` and `asset_history`, and the request
+and response schemas that carry an asset id, follow the string key.
+
 ## Known issues
 
-- **Startup crash: two `assets` schemas.** [`app/models/asset.py`](backend/app/models/asset.py) and the workflow modules' contract both use the table name `assets`. `Base.metadata.create_all` creates the ORM version first, and then [`app/seed.py`](backend/app/seed.py) inserts a `department_id` column that this version lacks. The modules' tests do not import the `/api/v1` models, so they do not catch it. Fixing it means agreeing on one `assets` schema.
 - **Authentication is not enforced.** The workflow modules trust `X-User-Id`/`X-User-Role` headers sent by the browser, and the login screen checks demo credentials in client-side code. The JWT routers under `/api/v1` hard-code their signing key in [`app/core/security.py`](backend/app/core/security.py), and the UI does not use them.
 - **CORS allows all origins**, with credentials.
 - **Two seeding paths and two startup hooks.** `main.py` calls `create_all` at import time and again in the lifespan hook, and also registers a deprecated `on_event("startup")` handler for role seeding.

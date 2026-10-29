@@ -8,7 +8,7 @@ class AssetBase(BaseModel):
     description: Optional[str] = None
     serial_number: Optional[str] = None
     category_id: int
-    status: str = "Available"
+    status: str = "available"
     purchase_date: Optional[date] = None
     purchase_cost: Optional[float] = None
     warranty_expiry: Optional[date] = None
@@ -36,7 +36,7 @@ class AssetUpdate(BaseModel):
 class AssetResponse(AssetBase):
     model_config = ConfigDict(from_attributes=True)
 
-    id: int
+    id: str
     asset_tag: str
     is_active: bool
 
@@ -45,7 +45,7 @@ class AssetHistoryResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    asset_id: int
+    asset_id: str
     performed_by_id: int
     action: str
     action_detail: Optional[str] = None
